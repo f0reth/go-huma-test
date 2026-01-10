@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-huma-test/db"
 	"go-huma-test/model"
+	"log/slog"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -64,7 +65,8 @@ func (h *TodoHandler) ListTodos(ctx context.Context, input *model.ListTodosInput
 	}
 
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to fetch todos", err)
+		slog.Warn("todoリストの取得に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("Todoリストの取得に失敗", err)
 	}
 
 	output := &model.ListTodosOutput{}
@@ -80,9 +82,11 @@ func (h *TodoHandler) GetTodo(ctx context.Context, input *model.GetTodoInput) (*
 	todo, err := h.queries.GetTodo(ctx, input.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, huma.Error404NotFound(fmt.Sprintf("Todo with ID %d not found", input.ID))
+			slog.Warn("Todo IDが見つかりません", "id", input.ID, "err", err)
+			return nil, huma.Error404NotFound(fmt.Sprintf("Todo IDが見つかりません: %d", input.ID))
 		}
-		return nil, huma.Error500InternalServerError("Failed to fetch todo", err)
+		slog.Warn("Todoの取得に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("Todo取得に失敗", err)
 	}
 
 	return &model.GetTodoOutput{Body: toTodoResponse(todo)}, nil
@@ -97,7 +101,8 @@ func (h *TodoHandler) CreateTodo(ctx context.Context, input *model.CreateTodoInp
 		Completed:   0,
 	})
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to create todo", err)
+		slog.Warn("Todo作成に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("Todo作成に失敗", err)
 	}
 
 	return &model.CreateTodoOutput{Body: toTodoResponse(todo)}, nil
@@ -106,7 +111,8 @@ func (h *TodoHandler) CreateTodo(ctx context.Context, input *model.CreateTodoInp
 func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInput) (*model.UpdateTodoOutput, error) {
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to begin transaction", err)
+		slog.Warn("トランザクション開始に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("トランザクション開始に失敗", err)
 	}
 	defer tx.Rollback()
 
@@ -126,11 +132,13 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInp
 		Completed:   completed,
 	})
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to update todo", err)
+		slog.Warn("Todo更新に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("Todo更新に失敗", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, huma.Error500InternalServerError("Failed to commit transaction", err)
+		slog.Warn("トランザクションのコミットに失敗", "err", err)
+		return nil, huma.Error500InternalServerError("トランザクションのコミットに失敗", err)
 	}
 
 	return &model.UpdateTodoOutput{Body: toTodoResponse(todo)}, nil
@@ -139,18 +147,21 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInp
 func (h *TodoHandler) DeleteTodo(ctx context.Context, input *model.DeleteTodoInput) (*model.DeleteTodoOutput, error) {
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to begin transaction", err)
+		slog.Warn("トランザクション開始に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("トランザクション開始に失敗", err)
 	}
 	defer tx.Rollback()
 
 	qtx := h.queries.WithTx(tx)
 
 	if err := qtx.DeleteTodo(ctx, input.ID); err != nil {
-		return nil, huma.Error500InternalServerError("Failed to delete todo", err)
+		slog.Warn("Todo削除に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("Todo削除に失敗", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, huma.Error500InternalServerError("Failed to commit transaction", err)
+		slog.Warn("トランザクションのコミットに失敗", "err", err)
+		return nil, huma.Error500InternalServerError("トランザクションのコミットに失敗", err)
 	}
 
 	output := &model.DeleteTodoOutput{}
@@ -161,7 +172,8 @@ func (h *TodoHandler) DeleteTodo(ctx context.Context, input *model.DeleteTodoInp
 func (h *TodoHandler) ToggleTodo(ctx context.Context, input *model.ToggleTodoInput) (*model.ToggleTodoOutput, error) {
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to begin transaction", err)
+		slog.Warn("トランザクション開始に失敗", "err", err)
+		return nil, huma.Error500InternalServerError("トランザクション開始に失敗", err)
 	}
 	defer tx.Rollback()
 
@@ -169,11 +181,13 @@ func (h *TodoHandler) ToggleTodo(ctx context.Context, input *model.ToggleTodoInp
 
 	todo, err := qtx.ToggleTodoCompleted(ctx, input.ID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to toggle todo", err)
+		slog.Warn("Todoのトグルに失敗", "err", err)
+		return nil, huma.Error500InternalServerError("Todoのトグルに失敗", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, huma.Error500InternalServerError("Failed to commit transaction", err)
+		slog.Warn("トランザクションのコミットに失敗", "err", err)
+		return nil, huma.Error500InternalServerError("トランザクションのコミットに失敗", err)
 	}
 
 	return &model.ToggleTodoOutput{Body: toTodoResponse(todo)}, nil

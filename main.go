@@ -7,7 +7,6 @@ import (
 	"go-huma-test/db"
 	"go-huma-test/handler"
 	"go-huma-test/model"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -27,7 +26,7 @@ var schema string
 func initDB(dbPath string) (*sql.DB, error) {
 	sqlDB, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("データベース接続に失敗: %w", err)
 	}
 
 	params := []string{
@@ -45,8 +44,10 @@ func initDB(dbPath string) (*sql.DB, error) {
 	sqlDB.SetMaxIdleConns(1) // アイドル状態のコネクション数
 
 	if _, err := sqlDB.Exec(schema); err != nil {
-		return nil, fmt.Errorf("failed to create schema: %w", err)
+		return nil, fmt.Errorf("データベース初期化スキーマの実行失敗: %w", err)
 	}
+
+	slog.Info("データベース接続に成功")
 
 	return sqlDB, nil
 }
@@ -69,16 +70,22 @@ func AuthMiddleware(ctx huma.Context, next func(huma.Context)) {
 }
 
 func main() {
+	// ロガー初期化
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelInfo,
+		AddSource: false,
+	})))
+
 	sqlDB, err := initDB("./todos.db")
 	if err != nil {
-		slog.Error("failed to initialize database", "err", err)
+		slog.Error("データベース初期化に失敗", "err", err)
 		os.Exit(1)
 	}
 	defer sqlDB.Close()
 
 	queries, err := db.Prepare(context.Background(), sqlDB)
 	if err != nil {
-		slog.Error("failed to prepare database", "err", err)
+		slog.Error("データベースのPrepareに失敗", "err", err)
 		os.Exit(1)
 	}
 	handler := handler.NewTodoHandler(queries, sqlDB)
@@ -156,27 +163,30 @@ func main() {
 		}
 
 		h.OnStart(func() {
+			slog.Info("サーバー起動開始...")
 			addr := fmt.Sprintf("%s:%d", o.Host, o.Port)
-			log.Printf("🚀 Todo API Server starting on http://%s", addr)
-			log.Printf("📚 API Documentation: http://%s/docs", addr)
-			log.Printf("📚 Get OpenAPI File: http://%s/openapi.yaml", addr)
+			fmt.Printf("🚀 Todo API Server starting on http://%s\n", addr)
+			fmt.Printf("📚 API Documentation: http://%s/docs\n", addr)
+			fmt.Printf("📚 Get OpenAPI File: http://%s/openapi.yaml\n", addr)
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("Server error: %s\n", err)
+				slog.Error("サーバー起動に失敗", "err", err)
+				os.Exit(1)
 			}
 		})
 
 		h.OnStop(func() {
-			log.Println("Shutting down server...")
+			slog.Info("Shutting down server...")
+			slog.Info("サーバーのシャットダウン開始...")
 
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
 			if err := srv.Shutdown(ctx); err != nil {
-				log.Printf("Server shutdown error: %s\n", err)
+				slog.Error("サーバーのシャットダウンに失敗", "err", err)
 				os.Exit(1)
 			}
 
-			log.Println("Server stopped gracefully")
+			slog.Info("サーバーは正常にシャットダウンされました")
 		})
 	})
 
