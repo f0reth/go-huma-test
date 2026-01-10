@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	_ "embed"
 
@@ -149,14 +150,33 @@ func main() {
 			Tags:        []string{"todos"},
 		}, handler.ToggleTodo)
 
+		srv := &http.Server{
+			Addr:    fmt.Sprintf("%s:%d", o.Host, o.Port),
+			Handler: mux,
+		}
+
 		h.OnStart(func() {
 			addr := fmt.Sprintf("%s:%d", o.Host, o.Port)
 			log.Printf("🚀 Todo API Server starting on http://%s", addr)
 			log.Printf("📚 API Documentation: http://%s/docs", addr)
 			log.Printf("📚 Get OpenAPI File: http://%s/openapi.yaml", addr)
-			if err := http.ListenAndServe(addr, mux); err != nil {
-				log.Fatalf("Server failed: %v", err)
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Server error: %s\n", err)
 			}
+		})
+
+		h.OnStop(func() {
+			log.Println("Shutting down server...")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			if err := srv.Shutdown(ctx); err != nil {
+				log.Printf("Server shutdown error: %s\n", err)
+				os.Exit(1)
+			}
+
+			log.Println("Server stopped gracefully")
 		})
 	})
 
