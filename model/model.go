@@ -1,7 +1,8 @@
 package model
 
 type Options struct {
-	Port int `doc:"Port to listen on." short:"p" default:"8888"`
+	Port int    `doc:"Port to listen on." short:"p" default:"8888"`
+	Host string `doc:"Hostname to listen on." default:"localhost"`
 }
 
 type TodoResponse struct {

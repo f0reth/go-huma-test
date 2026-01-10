@@ -150,10 +150,10 @@ func main() {
 		}, handler.ToggleTodo)
 
 		h.OnStart(func() {
-			addr := fmt.Sprintf(":%d", o.Port)
-			log.Printf("🚀 Todo API Server starting on http://localhost%s", addr)
-			log.Printf("📚 API Documentation: http://localhost%s/docs", addr)
-			log.Printf("📚 Get OpenAPI File: http://localhost%s/openapi.yaml", addr)
+			addr := fmt.Sprintf("%s:%d", o.Host, o.Port)
+			log.Printf("🚀 Todo API Server starting on http://%s", addr)
+			log.Printf("📚 API Documentation: http://%s/docs", addr)
+			log.Printf("📚 Get OpenAPI File: http://%s/openapi.yaml", addr)
 			if err := http.ListenAndServe(addr, mux); err != nil {
 				log.Fatalf("Server failed: %v", err)
 			}
