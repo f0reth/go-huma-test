@@ -50,6 +50,23 @@ func initDB(dbPath string) (*sql.DB, error) {
 	return sqlDB, nil
 }
 
+func LoggingMiddleware(ctx huma.Context, next func(huma.Context)) {
+	fmt.Printf("[%s] %s\n", ctx.Method(), ctx.URL().Path)
+	next(ctx)
+}
+
+func AuthMiddleware(ctx huma.Context, next func(huma.Context)) {
+	// 認証チェック
+	token := ctx.Header("Authorization")
+	if token == "" {
+		huma.WriteErr(huma.NewAPI(huma.Config{}, nil), ctx, http.StatusUnauthorized,
+			"Authorization header required")
+		return
+	}
+
+	next(ctx)
+}
+
 func main() {
 	sqlDB, err := initDB("./todos.db")
 	if err != nil {
@@ -72,6 +89,10 @@ func main() {
 		config.Info.Description = "SQLite + sqlc + Humaを使ったシンプルなTodo API"
 		config.CreateHooks = []func(huma.Config) huma.Config{}
 		api := humago.New(mux, config)
+
+		// ミドルウェア設定
+		api.UseMiddleware(LoggingMiddleware)
+		api.UseMiddleware(AuthMiddleware)
 
 		huma.Register(api, huma.Operation{
 			OperationID: "list-todos",
@@ -137,7 +158,6 @@ func main() {
 				log.Fatalf("Server failed: %v", err)
 			}
 		})
-
 	})
 
 	cli.Run()
