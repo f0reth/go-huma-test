@@ -114,7 +114,9 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInp
 		slog.Warn("トランザクション開始に失敗", "err", err)
 		return nil, huma.Error500InternalServerError("トランザクション開始に失敗", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	qtx := h.queries.WithTx(tx)
 
@@ -150,7 +152,9 @@ func (h *TodoHandler) DeleteTodo(ctx context.Context, input *model.DeleteTodoInp
 		slog.Warn("トランザクション開始に失敗", "err", err)
 		return nil, huma.Error500InternalServerError("トランザクション開始に失敗", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	qtx := h.queries.WithTx(tx)
 
@@ -175,7 +179,9 @@ func (h *TodoHandler) ToggleTodo(ctx context.Context, input *model.ToggleTodoInp
 		slog.Warn("トランザクション開始に失敗", "err", err)
 		return nil, huma.Error500InternalServerError("トランザクション開始に失敗", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	qtx := h.queries.WithTx(tx)
 

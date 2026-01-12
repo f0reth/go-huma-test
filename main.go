@@ -61,8 +61,10 @@ func AuthMiddleware(ctx huma.Context, next func(huma.Context)) {
 	// 認証チェック
 	token := ctx.Header("Authorization")
 	if token == "" {
-		huma.WriteErr(huma.NewAPI(huma.Config{}, nil), ctx, http.StatusUnauthorized,
-			"Authorization header required")
+		slog.Warn("Authorizationが設定されていません")
+		if err := huma.WriteErr(huma.NewAPI(huma.Config{}, nil), ctx, http.StatusUnauthorized, "Authorization header required"); err != nil {
+			slog.Warn("エラーレスポンスの書き込みに失敗", "err", err)
+		}
 		return
 	}
 
@@ -81,7 +83,11 @@ func main() {
 		slog.Error("データベース初期化に失敗", "err", err)
 		os.Exit(1)
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			slog.Error("データベースの終了に失敗", "err", err)
+		}
+	}()
 
 	queries, err := db.Prepare(context.Background(), sqlDB)
 	if err != nil {
@@ -158,8 +164,12 @@ func main() {
 		}, handler.ToggleTodo)
 
 		srv := &http.Server{
-			Addr:    fmt.Sprintf("%s:%d", o.Host, o.Port),
-			Handler: mux,
+			Addr:              fmt.Sprintf("%s:%d", o.Host, o.Port),
+			Handler:           mux,
+			ReadHeaderTimeout: 5 * time.Second,  // ヘッダ読み取り制限
+			ReadTimeout:       15 * time.Second, // 全体の読み取り制限
+			WriteTimeout:      15 * time.Second, // レスポンス書き込み制限
+			IdleTimeout:       60 * time.Second, // keep-alive制御
 		}
 
 		h.OnStart(func() {
