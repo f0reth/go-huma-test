@@ -1,3 +1,6 @@
+// Package main はTodo管理APIのエントリーポイントを提供する。
+// このパッケージはHumaフレームワークを使用してREST APIサーバーを起動し、
+// SQLiteデータベースと連携してTodoの管理機能を提供する。
 package main
 
 import (

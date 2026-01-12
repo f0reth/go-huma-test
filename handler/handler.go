@@ -1,3 +1,6 @@
+// Package handler はTodo管理APIのHTTPリクエストハンドラーを提供する。
+// このパッケージはHumaフレームワークと連携し、
+// Todoの作成、取得、更新、削除などの操作を処理する。
 package handler
 
 import (
@@ -12,11 +15,13 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
+// TodoHandler はTodoに関する操作を処理するハンドラー
 type TodoHandler struct {
 	queries *db.Queries
 	db      *sql.DB
 }
 
+// NewTodoHandler はTodoHandlerの新しいインスタンスを生成する
 func NewTodoHandler(queries *db.Queries, db *sql.DB) *TodoHandler {
 	return &TodoHandler{
 		queries: queries,
@@ -24,6 +29,7 @@ func NewTodoHandler(queries *db.Queries, db *sql.DB) *TodoHandler {
 	}
 }
 
+// stringToNullString は文字列をsql.NullStringに変換する
 func stringToNullString(s string) sql.NullString {
 	if s == "" {
 		return sql.NullString{Valid: false}
@@ -34,6 +40,7 @@ func stringToNullString(s string) sql.NullString {
 	}
 }
 
+// nullStringToString はsql.NullStringを文字列に変換する
 func nullStringToString(s sql.NullString) string {
 	if s.Valid {
 		return s.String
@@ -41,6 +48,7 @@ func nullStringToString(s sql.NullString) string {
 	return ""
 }
 
+// toTodoResponse はdb.Todoをmodel.TodoResponseに変換する
 func toTodoResponse(t db.Todo) model.TodoResponse {
 	description := nullStringToString(t.Description)
 
@@ -54,6 +62,7 @@ func toTodoResponse(t db.Todo) model.TodoResponse {
 	}
 }
 
+// ListTodos はTodoのリストを取得する
 func (h *TodoHandler) ListTodos(ctx context.Context, input *model.ListTodosInput) (*model.ListTodosOutput, error) {
 	var todos []db.Todo
 	var err error
@@ -78,6 +87,7 @@ func (h *TodoHandler) ListTodos(ctx context.Context, input *model.ListTodosInput
 	return output, nil
 }
 
+// GetTodo は指定されたIDのTodoを取得する
 func (h *TodoHandler) GetTodo(ctx context.Context, input *model.GetTodoInput) (*model.GetTodoOutput, error) {
 	todo, err := h.queries.GetTodo(ctx, input.ID)
 	if err != nil {
@@ -92,6 +102,7 @@ func (h *TodoHandler) GetTodo(ctx context.Context, input *model.GetTodoInput) (*
 	return &model.GetTodoOutput{Body: toTodoResponse(todo)}, nil
 }
 
+// CreateTodo は新しいTodoを作成する
 func (h *TodoHandler) CreateTodo(ctx context.Context, input *model.CreateTodoInput) (*model.CreateTodoOutput, error) {
 	description := stringToNullString(*input.Body.Description)
 
@@ -108,6 +119,7 @@ func (h *TodoHandler) CreateTodo(ctx context.Context, input *model.CreateTodoInp
 	return &model.CreateTodoOutput{Body: toTodoResponse(todo)}, nil
 }
 
+// UpdateTodo は指定されたIDのTodoを更新する
 func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInput) (*model.UpdateTodoOutput, error) {
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -146,6 +158,7 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInp
 	return &model.UpdateTodoOutput{Body: toTodoResponse(todo)}, nil
 }
 
+// DeleteTodo は指定されたIDのTodoを削除する
 func (h *TodoHandler) DeleteTodo(ctx context.Context, input *model.DeleteTodoInput) (*model.DeleteTodoOutput, error) {
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -173,6 +186,7 @@ func (h *TodoHandler) DeleteTodo(ctx context.Context, input *model.DeleteTodoInp
 	return output, nil
 }
 
+// ToggleTodo は指定されたIDのTodoの完了状態を切り替える
 func (h *TodoHandler) ToggleTodo(ctx context.Context, input *model.ToggleTodoInput) (*model.ToggleTodoOutput, error) {
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
