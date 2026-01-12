@@ -1,0 +1,34 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  go: "1.25"
+
+linters:
+  default: standard
+  enable:
+    - errcheck # エラー戻り値の未チェックを検出
+    - staticcheck # バグ・非推奨API・無意味コードを検出
+    - govet
+    - ineffassign # 代入したのに使われていない変数
+    - unused # 未使用の定数・型・関数
+    - revive # 命名規則・コメント規約
+    - bodyclose # HTTPレスポンスのボディが正しく閉じられていない箇所を検出
+    - unconvert # 不要な型変換箇所を検出
+    - sqlclosecheck # sql.Rows / Stmt の Close 忘れ
+    - nilerr # nilチェックと矛盾するエラー返却箇所を検出
+    - gosec # セキュリティ脆弱性箇所を検出
+  settings:
+    revive:
+      enable-all-rules: false
+      enable-default-rules: false
+
+formatters:
+  enable:
+    - goimports
+    - gofumpt # gofumptを有効化
+
+  settings:
+    gofumpt:
+      extra-rules: true

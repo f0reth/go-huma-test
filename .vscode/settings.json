@@ -1,0 +1,29 @@
+{
+  "[go]": {
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "golang.go",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll": "explicit"
+    }
+  },
+  "go.useLanguageServer": true,
+  "gopls": {
+    "formatting.gofumpt": false, // golangci-lintで使用
+    "staticcheck": false // golangci-lintで使用
+  },
+  "go.lintTool": "golangci-lint-v2",
+  "go.lintOnSave": "package",
+  "go.lintFlags": [
+    "--path-mode=abs",
+    "--fast-only"
+  ],
+  "go.formatTool": "custom",
+  "go.alternateTools": {
+    "customFormatter": "golangci-lint"
+  },
+  "go.formatFlags": [
+    "fmt",
+    "--stdin"
+  ]
+}
