@@ -30,12 +30,12 @@ func NewTodoHandler(queries *db.Queries, db *sql.DB) *TodoHandler {
 }
 
 // stringToNullString は文字列をsql.NullStringに変換する
-func stringToNullString(s string) sql.NullString {
-	if s == "" {
+func ptrStringToNullString(s *string) sql.NullString {
+	if s == nil || *s == "" {
 		return sql.NullString{Valid: false}
 	}
 	return sql.NullString{
-		String: s,
+		String: *s,
 		Valid:  true,
 	}
 }
@@ -104,7 +104,7 @@ func (h *TodoHandler) GetTodo(ctx context.Context, input *model.GetTodoInput) (*
 
 // CreateTodo は新しいTodoを作成する
 func (h *TodoHandler) CreateTodo(ctx context.Context, input *model.CreateTodoInput) (*model.CreateTodoOutput, error) {
-	description := stringToNullString(*input.Body.Description)
+	description := ptrStringToNullString(input.Body.Description)
 
 	todo, err := h.queries.CreateTodo(ctx, db.CreateTodoParams{
 		Title:       input.Body.Title,
@@ -137,7 +137,7 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, input *model.UpdateTodoInp
 		completed = 1
 	}
 
-	description := stringToNullString(*input.Body.Description)
+	description := ptrStringToNullString(input.Body.Description)
 
 	todo, err := qtx.UpdateTodo(ctx, db.UpdateTodoParams{
 		ID:          input.ID,
